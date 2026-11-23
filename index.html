@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnSmart — Smart Interactive Classroom System</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FAF8F4',
+            slate: {
+              deep: '#1E2D28',
+              muted: '#4A5B55',
+              light: '#6E7F79'
+            },
+            sage: {
+              light: '#E2ECE7',
+              DEFAULT: '#84AF9B',
+              dark: '#3B735B',
+              deep: '#295442'
+            },
+            coral: {
+              light: '#FFEBEF',
+              DEFAULT: '#FF4266',
+              dark: '#D9264D'
+            },
+            peach: {
+              light: '#FFF5EE',
+              DEFAULT: '#FACDB0',
+              dark: '#E8B393'
+            },
+            sand: {
+              light: '#F8F6F0',
+              DEFAULT: '#EFECE4',
+              dark: '#DDD8CB'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-cream text-slate-deep min-h-screen flex flex-col antialiased selection:bg-sage-light selection:text-sage-dark">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none"></div>
+
+  <!-- Sticky Top Navbar -->
+  <header class="sticky top-0 z-40 bg-cream/90 backdrop-blur-md border-b border-sand-dark transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand & Classroom Room Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-sage-dark text-cream flex items-center justify-center shadow-sm">
+          <i data-lucide="sparkles" class="w-5 h-5 text-peach"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-deep leading-none">LearnSmart</h1>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sand border border-sand-dark text-slate-deep shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-sage-dark pulse-badge"></span>
+              Room: CS-204
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-light font-medium hidden sm:block mt-0.5">Distributed Systems & Cloud Architecture</p>
+        </div>
+      </div>
+
+      <!-- Action Controls: Offline Mode Toggle & Student/Teacher Role Switcher -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        
+        <!-- Online/Offline Mode Toggle Button -->
+        <button id="offline-toggle-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sage-light text-sage-dark border border-sage/40 hover:bg-sage-light/80 transition-colors shadow-xs" title="Toggle between Online Sync and Disconnected Offline Cached Study">
+          <span id="offline-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-sage-dark pulse-badge"></span>
+          <span id="offline-indicator-text" class="hidden xs:inline">Online Sync</span>
+        </button>
+
+        <!-- Role Switcher Segmented Control -->
+        <div class="flex items-center p-1 rounded-xl bg-sand border border-sand-dark shadow-inner text-xs">
+          <button id="role-pill-student" data-action="switch-role" data-role="student" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cream text-slate-deep shadow-sm transition-all">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-sage-dark"></i>
+            <span>Student</span>
+          </button>
+          <button id="role-pill-teacher" data-action="switch-role" data-role="teacher" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-muted hover:text-slate-deep transition-all">
+            <i data-lucide="presentation" class="w-3.5 h-3.5 text-coral"></i>
+            <span>Teacher</span>
+          </button>
+        </div>
+
+        <!-- Simulation quick button for demo reviewers -->
+        <button id="simulate-cohort-btn" class="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-sand hover:bg-sand-dark text-slate-deep border border-sand-dark transition-colors" title="Simulate 3 new student quiz submissions and doubts">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-sage"></i>
+          <span>Simulate Cohort</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Offline Status Alert Banner (Shown when offline mode is active) -->
+  <div id="offline-status-banner" class="hidden bg-coral-light border-b border-coral/30 px-4 py-2 text-xs text-slate-deep transition-all">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-coral-dark"></i>
+        <span><strong>Offline Cached Mode Active:</strong> You are browsing cached lecture notes and practice modules. All submissions will be queued locally.</span>
+      </div>
+      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cream text-coral-dark uppercase tracking-wider">Disconnected Ready</span>
+    </div>
+  </div>
+
+  <!-- Pop Quiz Broadcast Alert Banner (Live Teacher Push Notification) -->
+  <div id="broadcast-alert-banner" class="hidden bg-peach-light border-b-2 border-coral px-4 py-2.5 text-xs text-slate-deep animate-pulse transition-all">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-6 h-6 rounded-full bg-coral text-white flex items-center justify-center flex-shrink-0">
+          <i data-lucide="bell-ring" class="w-3.5 h-3.5"></i>
+        </div>
+        <div>
+          <span id="broadcast-title" class="font-bold text-coral-dark">⚡ Live Pop Quiz Alert from Prof. Thorne!</span>
+          <span id="broadcast-message" class="text-slate-deep ml-1 hidden sm:inline">Please open the Live Short Quiz tab and answer the 3 Raft questions now.</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="broadcast-time" class="text-[10px] text-slate-light font-mono">10:14 AM</span>
+        <button onclick="app.store.dismissBroadcast()" class="p-1 text-slate-light hover:text-slate-deep">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Body -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================================================= -->
+    <!-- 1. STUDENT VIEW                                                           -->
+    <!-- ========================================================================= -->
+    <div id="student-view-container" class="space-y-6">
+
+      <!-- 1.1 Pre-Class Objectives Banner -->
+      <section class="p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          
+          <!-- Lecture Header & 3 Learning Goals -->
+          <div class="flex-1 space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sage-light text-sage-dark border border-sage/30">
+                Today's Core Lecture
+              </span>
+              <span class="text-xs text-slate-light font-medium flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3 h-3"></i> Fall 2026 • Module 4
+              </span>
+              <span class="text-xs text-slate-light font-medium flex items-center gap-1">
+                <i data-lucide="user" class="w-3 h-3"></i> Prof. Aris Thorne
+              </span>
+            </div>
+
+            <h2 class="text-xl sm:text-2xl font-black text-slate-deep tracking-tight">
+              Lecture 14: Raft Consensus, Quorums & Byzantine Fault Tolerance
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+              <div class="p-3 rounded-2xl bg-cream border border-sand-dark flex items-start gap-2.5">
+                <div class="w-5 h-5 rounded-full bg-sage-light text-sage-dark flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5">1</div>
+                <p class="text-xs text-slate-deep leading-snug">
+                  <strong>Leader Election:</strong> Understand randomized election timeouts & RequestVote RPCs.
+                </p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-cream border border-sand-dark flex items-start gap-2.5">
+                <div class="w-5 h-5 rounded-full bg-sage-light text-sage-dark flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5">2</div>
+                <p class="text-xs text-slate-deep leading-snug">
+                  <strong>Quorum Bounds:</strong> Calculate strict majorities <code class="font-mono bg-sand px-1 rounded">Q = ⌊n/2⌋ + 1</code>.
+                </p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-cream border border-sand-dark flex items-start gap-2.5">
+                <div class="w-5 h-5 rounded-full bg-sage-light text-sage-dark flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5">3</div>
+                <p class="text-xs text-slate-deep leading-snug">
+                  <strong>Split-Brain Safety:</strong> Prove log consistency across network partitions.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive "Before-Class Checklist" -->
+          <div class="lg:w-80 p-4 rounded-2xl bg-cream border border-sand-dark shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-sage-dark flex items-center gap-1.5">
+                <i data-lucide="check-square" class="w-4 h-4"></i> Before-Class Checklist
+              </span>
+              <span id="checklist-percent-badge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-sage-light text-sage-dark">
+                33% Ready
+              </span>
+            </div>
+
+            <!-- Progress Meter -->
+            <div class="w-full h-1.5 bg-sand rounded-full overflow-hidden mb-3">
+              <div id="checklist-progress-bar" class="h-full bg-sage-dark transition-all duration-300" style="width: 33%"></div>
+            </div>
+
+            <!-- Checklist Items -->
+            <div id="preclass-checklist-items" class="space-y-1">
+              <!-- Dynamically populated via app.js -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 1.2 Two-Column Interactive Workspace: Anonymous Doubt Box + Live Short Quiz -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Anonymous Doubt Box (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col space-y-4">
+          <div class="p-5 sm:p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm">
+            
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-lg font-bold text-slate-deep flex items-center gap-2">
+                  <i data-lucide="message-circle-question" class="w-5 h-5 text-coral"></i>
+                  Anonymous Doubt Box
+                </h3>
+                <p class="text-xs text-slate-muted mt-0.5">
+                  Ask freely without peer pressure. Zero names attached. Upvote questions you also want answered.
+                </p>
+              </div>
+              <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-cream border border-sand-dark text-slate-deep">
+                <i data-lucide="lock" class="w-3 h-3 text-sage"></i> 100% Confidential
+              </span>
+            </div>
+
+            <!-- Submission Form -->
+            <form id="doubt-submit-form" class="space-y-3 mb-5 p-4 rounded-2xl bg-cream border border-sand-dark">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <label for="doubt-topic-select" class="text-xs font-semibold text-slate-deep flex items-center gap-1">
+                  Topic:
+                </label>
+                <select id="doubt-topic-select" class="flex-1 px-3 py-1.5 rounded-xl border border-sand-dark bg-sand-light text-xs font-medium text-slate-deep focus:outline-none focus:ring-2 focus:ring-sage">
+                  <option value="Leader Election">Leader Election & Timeouts</option>
+                  <option value="Quorum Math">Quorum Math (⌊n/2⌋ + 1)</option>
+                  <option value="Log Replication">Log Replication & Safety</option>
+                  <option value="Split-Brain">Network Partitions & Split-Brain</option>
+                  <option value="Heartbeat Timers">Heartbeat Timers & Ping RPCs</option>
+                  <option value="General Inquiry">General Raft Concept</option>
+                </select>
+              </div>
+
+              <div>
+                <textarea 
+                  id="doubt-question-input" 
+                  rows="2" 
+                  placeholder="Type your question or confusion here... (e.g., Why do 6 nodes offer no extra fault tolerance over 5?)"
+                  required
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-sand-dark bg-sand-light text-xs text-slate-deep placeholder-slate-light focus:outline-none focus:ring-2 focus:ring-sage resize-none"
+                ></textarea>
+              </div>
+
+              <!-- Quick Prompt Pills for Inspiration -->
+              <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span class="text-[10px] uppercase font-bold text-slate-light">Quick inspiration:</span>
+                <button type="button" onclick="document.getElementById('doubt-question-input').value = 'Why can an uncommitted entry from a previous term not be committed directly by a new leader?'; document.getElementById('doubt-topic-select').value = 'Log Replication';" class="text-[11px] px-2 py-0.5 rounded-md bg-sand hover:bg-sand-dark text-slate-deep transition-colors">
+                  "Log commit safety?"
+                </button>
+                <button type="button" onclick="document.getElementById('doubt-question-input').value = 'If 2 of 5 nodes are partitioned away, can they elect their own leader?'; document.getElementById('doubt-topic-select').value = 'Split-Brain';" class="text-[11px] px-2 py-0.5 rounded-md bg-sand hover:bg-sand-dark text-slate-deep transition-colors">
+                  "Minority partition election?"
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-[11px] text-slate-light italic">
+                  Submitted questions sync in real-time to the classroom board.
+                </span>
+                <button type="submit" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-coral text-white hover:bg-coral-dark transition-colors shadow-sm">
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                  <span>Post Anonymously</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Filter Tabs & Doubt Queue Header -->
+            <div class="flex items-center justify-between gap-2 border-b border-sand-dark pb-3 mb-3">
+              <div class="flex items-center gap-1 bg-cream p-1 rounded-xl border border-sand-dark">
+                <button data-doubt-filter="all" class="px-3 py-1 rounded-lg text-xs font-semibold bg-sage-dark text-white shadow-sm">
+                  All
+                </button>
+                <button data-doubt-filter="pending" class="px-3 py-1 rounded-lg text-xs font-medium text-slate-muted hover:bg-cream">
+                  Pending
+                </button>
+                <button data-doubt-filter="answered" class="px-3 py-1 rounded-lg text-xs font-medium text-slate-muted hover:bg-cream">
+                  Answered
+                </button>
+              </div>
+
+              <span id="doubts-count-badge" class="text-xs font-semibold text-slate-light">
+                4 Doubts
+              </span>
+            </div>
+
+            <!-- Live Doubts Stream -->
+            <div id="doubts-stream-container" class="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+              <!-- Dynamically populated via app.js -->
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Right: Live Short Quiz (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col">
+          <div class="p-5 sm:p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-deep flex items-center gap-2">
+                  <i data-lucide="zap" class="w-5 h-5 text-sage-dark"></i>
+                  Live Short Quiz
+                </h3>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-peach text-coral-dark border border-coral/20">
+                  Instant Feedback
+                </span>
+              </div>
+              <p class="text-xs text-slate-muted mb-4">
+                3-question interactive check. Instant explanation insights provided on every option. Your comprehension score updates the teacher's dashboard in real-time.
+              </p>
+
+              <!-- Dynamic Quiz Container -->
+              <div id="live-quiz-container" class="p-4 sm:p-5 rounded-2xl bg-cream border border-sand-dark">
+                <!-- Dynamically populated via app.js -->
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-sand-dark flex items-center justify-between text-[11px] text-slate-light">
+              <span class="flex items-center gap-1">
+                <i data-lucide="cpu" class="w-3.5 h-3.5 text-sage"></i> Distributed State Machine Check
+              </span>
+              <span>Retakes permitted</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 1.3 Visual Video Explainers & Offline Notes Section -->
+      <section id="visual-explainers-section" class="p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 class="text-lg sm:text-xl font-black text-slate-deep flex items-center gap-2">
+              <i data-lucide="film" class="w-5 h-5 text-sage-dark"></i>
+              Visual Video Explainers & Offline Notes
+            </h3>
+            <p class="text-xs text-slate-muted mt-1">
+              Interactive 3-minute concept simulations with synchronized CC subtitles and instant .txt study guide export.
+            </p>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-light"></i>
+            <input 
+              id="lesson-search-input" 
+              type="text" 
+              placeholder="Search concepts, topics..." 
+              class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-sand-dark bg-cream text-xs text-slate-deep placeholder-slate-light focus:outline-none focus:ring-2 focus:ring-sage"
+            >
+          </div>
+        </div>
+
+        <!-- Lesson Cards Grid -->
+        <div id="lesson-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Dynamically populated via app.js -->
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 2. TEACHER ENGAGEMENT DASHBOARD                                           -->
+    <!-- ========================================================================= -->
+    <div id="teacher-view-container" class="hidden space-y-6">
+
+      <!-- Header & Quick Actions -->
+      <div class="p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-coral-light text-coral-dark border border-coral/30">
+              Instructor Telemetry Center
+            </span>
+            <span class="text-xs text-slate-light font-mono">Live Stream Active</span>
+          </div>
+          <h2 class="text-2xl font-black text-slate-deep tracking-tight">
+            Classroom Engagement & Comprehension Analytics
+          </h2>
+          <p class="text-xs text-slate-muted mt-0.5">
+            Real-time telemetry gathered across CS-204 student devices: doubt queues, quiz scores, and offline exports.
+          </p>
+        </div>
+
+        <!-- Instructor Controls -->
+        <div class="flex items-center gap-2.5">
+          <button id="teacher-push-quiz-btn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-coral text-white hover:bg-coral-dark transition-all shadow-sm">
+            <i data-lucide="bell-ring" class="w-4 h-4"></i>
+            <span>Push Live Quiz Prompt</span>
+          </button>
+          
+          <button id="reset-demo-btn" class="px-3 py-2.5 rounded-xl text-xs font-medium bg-cream hover:bg-sand-dark text-slate-deep border border-sand-dark transition-colors" title="Reset all demo doubts and submissions">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- KPI 1: Quiz Comprehension % -->
+        <div class="p-5 rounded-2xl bg-sand border border-sand-dark shadow-xs card-hover flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-light block mb-1">
+              Quiz Comprehension
+            </span>
+            <span id="kpi-comprehension-val" class="text-3xl font-black text-sage-dark">
+              84%
+            </span>
+            <span class="text-[11px] text-sage-dark font-medium flex items-center gap-1 mt-1">
+              <i data-lucide="trending-up" class="w-3 h-3"></i> +6% vs last lecture
+            </span>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-sage-light text-sage-dark flex items-center justify-center">
+            <i data-lucide="award" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <!-- KPI 2: Active Participation % -->
+        <div class="p-5 rounded-2xl bg-sand border border-sand-dark shadow-xs card-hover flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-light block mb-1">
+              Active Participation
+            </span>
+            <span id="kpi-participation-val" class="text-3xl font-black text-slate-deep">
+              88%
+            </span>
+            <span class="text-[11px] text-slate-light font-medium block mt-1">
+              42 / 48 Enrolled Connected
+            </span>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-sand-light text-slate-deep flex items-center justify-center">
+            <i data-lucide="users" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <!-- KPI 3: Pending Doubts count -->
+        <div class="p-5 rounded-2xl bg-sand border border-sand-dark shadow-xs card-hover flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-light block mb-1">
+              Pending Doubts
+            </span>
+            <span id="kpi-doubts-val" class="text-3xl font-black text-coral-dark">
+              2
+            </span>
+            <span class="text-[11px] text-coral-dark font-medium flex items-center gap-1 mt-1">
+              <i data-lucide="alert-circle" class="w-3 h-3"></i> Awaiting verbal review
+            </span>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-coral-light text-coral flex items-center justify-center">
+            <i data-lucide="help-circle" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <!-- KPI 4: Offline Downloads count -->
+        <div class="p-5 rounded-2xl bg-sand border border-sand-dark shadow-xs card-hover flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-light block mb-1">
+              Offline Downloads
+            </span>
+            <span id="kpi-downloads-val" class="text-3xl font-black text-slate-deep">
+              52
+            </span>
+            <span class="text-[11px] text-slate-light font-medium block mt-1">
+              Note exports this week
+            </span>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-peach-light text-coral-dark flex items-center justify-center">
+            <i data-lucide="download-cloud" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Chart.js Topic Comprehension Bar Chart & Doubt Moderation Queue -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Chart.js Bar Chart (6 cols) -->
+        <div class="lg:col-span-6 p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-base font-bold text-slate-deep flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-sage-dark"></i>
+                Topic-Wise Comprehension Breakdown
+              </h3>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-cream border border-sand-dark text-slate-deep">
+                Live Aggregation
+              </span>
+            </div>
+            <p class="text-xs text-slate-muted mb-4">
+              Real-time student accuracy mapped across syllabus subtopics. Topics under 75% trigger suggested review pauses.
+            </p>
+          </div>
+
+          <!-- Chart Canvas Container -->
+          <div class="w-full h-72 relative bg-cream p-4 rounded-2xl border border-sand-dark">
+            <canvas id="topicComprehensionChart"></canvas>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-sand-dark flex items-center justify-between text-[11px] text-slate-light">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-sage-dark"></span> ≥80% High Mastery
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-sage"></span> 75-79% Adequate
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-coral"></span> &lt;75% Review Recommended
+            </span>
+          </div>
+        </div>
+
+        <!-- Right: Doubt Moderation & In-Class Resolution (6 cols) -->
+        <div class="lg:col-span-6 p-6 rounded-3xl bg-sand border border-sand-dark shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-base font-bold text-slate-deep flex items-center gap-2">
+                <i data-lucide="check-square" class="w-5 h-5 text-coral"></i>
+                Classroom Doubt Moderation Queue
+              </h3>
+              <span class="text-xs font-semibold text-slate-light">
+                Sorted by Peer Upvotes
+              </span>
+            </div>
+            <p class="text-xs text-slate-muted mb-4">
+              Click "Mark Answered" to provide an in-class verbal recap and update every student's interface immediately.
+            </p>
+          </div>
+
+          <!-- Moderation List -->
+          <div id="teacher-doubt-moderation-list" class="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+            <!-- Dynamically populated via app.js -->
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-sand-dark flex items-center justify-between text-[11px] text-slate-light">
+            <span>Tip: Pin questions to project them onto the main classroom projector</span>
+            <button onclick="app.store.simulateCohortActivity()" class="text-sage-dark font-semibold hover:underline">
+              + Add mock question
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: Watch & Read Concept Explainer Modal                               -->
+  <!-- ========================================================================= -->
+  <div id="lesson-watch-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-deep/60 backdrop-blur-sm animate-fadeIn">
+    <div class="bg-cream rounded-3xl border border-sand-dark shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-sand-dark flex items-center justify-between bg-sand">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-sage-dark text-white flex items-center justify-center">
+            <i data-lucide="video" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="modal-lesson-title" class="text-base font-bold text-slate-deep leading-tight">
+              Raft Consensus Visualized: 3-Node Cluster Election
+            </h3>
+            <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-light">
+              <span id="modal-lesson-topic" class="font-medium">Consensus</span>
+              <span>•</span>
+              <span id="modal-lesson-duration">3:15 min</span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="app.closeLessonModal()" class="p-2 rounded-xl text-slate-muted hover:text-slate-deep hover:bg-cream transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <!-- Video Canvas & Simulation Player -->
+        <div class="relative rounded-2xl bg-slate-deep border border-sand-dark overflow-hidden flex flex-col">
+          <!-- Animated SVG Raft Cluster Simulation -->
+          <div class="w-full h-64 sm:h-72 flex items-center justify-center relative bg-gradient-to-b from-[#1E2D28] to-[#14201C]">
+            <svg id="raft-sim-svg" class="w-full h-full" viewBox="0 0 600 320">
+              <!-- Rendered via app.js -->
+            </svg>
+
+            <!-- Closed Captions Overlay (CC) -->
+            <div id="sim-cc-overlay" class="absolute bottom-12 left-4 right-4 text-center pointer-events-none">
+              <span id="sim-cc-text" class="inline-block px-3 py-1.5 rounded-lg bg-black/85 text-white text-xs font-medium tracking-wide shadow-md">
+                Follower timers ticking down... Randomized timeouts prevent split vote deadlocks.
+              </span>
+            </div>
+          </div>
+
+          <!-- Video Player Timeline & Controls Bar -->
+          <div class="p-3 bg-slate-deep/90 border-t border-slate-muted/30 flex items-center justify-between text-white text-xs gap-3">
+            <div class="flex items-center gap-3">
+              <button onclick="app.toggleSimPlay()" class="w-8 h-8 rounded-lg bg-sage-dark hover:bg-sage text-white flex items-center justify-center transition-colors">
+                <i id="sim-play-btn-icon" data-lucide="pause" class="w-4 h-4 fill-current"></i>
+              </button>
+              <span id="sim-current-time" class="font-mono text-[11px] text-sand">0:45 / 3:15</span>
+            </div>
+
+            <!-- Scrub Timeline -->
+            <div class="flex-1 h-1.5 bg-slate-muted/50 rounded-full overflow-hidden mx-2 cursor-pointer">
+              <div id="sim-progress-bar" class="h-full bg-peach transition-all" style="width: 25%"></div>
+            </div>
+
+            <!-- CC & Speed Controls -->
+            <div class="flex items-center gap-2">
+              <button id="sim-cc-toggle-btn" onclick="app.toggleSimCC()" class="px-2 py-1 rounded text-xs font-bold bg-sage-dark text-white">
+                CC
+              </button>
+              <span class="text-[11px] text-sand px-1.5 py-0.5 rounded bg-slate-muted/40 font-mono">1.0x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Revision Points Card -->
+        <div class="p-4 rounded-2xl bg-sand border border-sand-dark">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-sage-dark mb-3 flex items-center gap-1.5">
+            <i data-lucide="bookmark-check" class="w-4 h-4"></i> High-Yield Key Revision Points
+          </h4>
+          <ul id="modal-lesson-key-points" class="space-y-2">
+            <!-- Dynamically populated via app.js -->
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 border-t border-sand-dark flex items-center justify-between bg-sand">
+        <span class="text-xs text-slate-light">
+          Simulated visual concept model for CS-204 Lecture 14.
+        </span>
+        <button onclick="app.handleDownloadOfflineNote(app.activeLesson.id)" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-sage-dark text-white hover:bg-sage-deep transition-colors shadow-sm">
+          <i data-lucide="download" class="w-4 h-4"></i> Export Offline Study Note (.txt)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-sand-dark bg-sand py-6 text-xs text-slate-muted">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-5 h-5 rounded-md bg-sage-dark text-white flex items-center justify-center text-[10px] font-bold">LS</div>
+        <span class="font-semibold text-slate-deep">LearnSmart — Smart Interactive Classroom Prototype</span>
+        <span>•</span>
+        <span>CS-204 Active Hub</span>
+      </div>
+      <div class="flex items-center gap-4 text-slate-light">
+        <span>State Synced via BroadcastChannel</span>
+        <span>•</span>
+        <span>Offline Cache Ready</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>

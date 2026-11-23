@@ -1,0 +1,131 @@
+/* LearnSmart - Smart Interactive Classroom System Styling */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --color-cream: #FAF8F4;
+  --color-slate-deep: #1E2D28;
+  --color-slate-muted: #4A5B55;
+  --color-sage-light: #E2ECE7;
+  --color-sage: #84AF9B;
+  --color-sage-dark: #3B735B;
+  --color-coral: #FF4266;
+  --color-coral-dark: #D9264D;
+  --color-peach: #FACDB0;
+  --color-sand: #EFECE4;
+  --color-sand-dark: #DDD8CB;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--color-cream);
+  color: var(--color-slate-deep);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F4;
+}
+::-webkit-scrollbar-thumb {
+  background: #DDD8CB;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #84AF9B;
+}
+
+/* Subtle transitions & micro-interactions */
+.smooth-all {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(30, 45, 40, 0.07), 0 8px 10px -6px rgba(30, 45, 40, 0.04);
+}
+
+/* Badge Pulse Animation */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.05);
+  }
+}
+
+.pulse-badge {
+  animation: pulse-subtle 2.5s infinite ease-in-out;
+}
+
+/* Custom Checkbox Animation */
+.custom-checkbox {
+  appearance: none;
+  background-color: #FAF8F4;
+  margin: 0;
+  font: inherit;
+  color: currentColor;
+  width: 1.35em;
+  height: 1.35em;
+  border: 2px solid #84AF9B;
+  border-radius: 0.375em;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox::before {
+  content: "";
+  width: 0.75em;
+  height: 0.75em;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset 1em 1em #3B735B;
+  transform-origin: center;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.custom-checkbox:checked {
+  background-color: #E2ECE7;
+  border-color: #3B735B;
+}
+
+.custom-checkbox:checked::before {
+  transform: scale(1);
+}
+
+/* Animated node visualization for Raft simulation */
+@keyframes packet-move {
+  0% { stroke-dashoffset: 60; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.packet-stream {
+  stroke-dasharray: 8 12;
+  animation: packet-move 1.5s linear infinite;
+}
+
+/* Toast container styling */
+#toast-container {
+  pointer-events: none;
+}
+#toast-container > * {
+  pointer-events: auto;
+}
+
+/* Code block highlight */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}

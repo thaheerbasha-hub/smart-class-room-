@@ -1,0 +1,20 @@
+{
+  "name": "learnsmart-classroom",
+  "version": "1.0.0",
+  "description": "LearnSmart - Smart Interactive Classroom Web App Prototype solving college student classroom engagement",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx --yes serve .",
+    "serve": "npx --yes serve ."
+  },
+  "keywords": [
+    "education",
+    "classroom-engagement",
+    "interactive-quiz",
+    "doubt-box",
+    "smart-classroom",
+    "analytics-dashboard"
+  ],
+  "author": "thaheerbasha-hub",
+  "license": "MIT"
+}
