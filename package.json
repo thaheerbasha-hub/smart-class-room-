@@ -4,8 +4,8 @@
   "description": "LearnSmart - Smart Interactive Classroom Web App Prototype solving college student classroom engagement",
   "main": "index.html",
   "scripts": {
-    "start": "npx --yes serve .",
-    "serve": "npx --yes serve ."
+    "start": "node server.js",
+    "serve": "node server.js"
   },
   "keywords": [
     "education",
